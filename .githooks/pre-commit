@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Pre-commit hook to prevent committing credentials
+
+FORBIDDEN_PATTERNS=(
+    "SNOWFLAKE_PASSWORD"
+    "aws_secret_access_key"
+    "api_key"
+    "API_KEY"
+    "[Pp]assword.*="
+    "[Ss]ecret.*="
+    "FINNHUB_API_KEY"
+)
+
+STAGED_FILES=$(git diff --cached --name-only)
+
+for FILE in $STAGED_FILES; do
+    for PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
+        if grep -E "$PATTERN" "$FILE" 2>/dev/null | grep -v ".env.example" > /dev/null; then
+            echo "❌ ERROR: Found potential credential in $FILE: $PATTERN"
+            echo "Commit aborted. Check your changes:"
+            echo ""
+            echo "git diff --staged $FILE"
+            echo ""
+            echo "Make sure credentials are in .env (not in code)"
+            echo ".env should be in .gitignore and never committed"
+            exit 1
+        fi
+    done
+done
+
+exit 0
